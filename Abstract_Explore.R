@@ -6,6 +6,8 @@ library(purrr)
 library(networkD3)
 library(foreach)
 library(doParallel)
+library(stringdist)
+library(tm)
 
 ## helper functions ####
 
@@ -14,6 +16,30 @@ simpleCap <- function(x) {
   paste(toupper(substring(s, 1,1)), substring(s, 2),
         sep="", collapse=" ")
 }
+
+suggest_word <- function( word, list ) {
+  
+  list[which.min(stringdist(
+    stemDocument(word), 
+    stemDocument(list), method = "lv"))]
+  
+}
+
+remove_dups <- function( word_list ){
+  i <- 1
+  while( i <= length(word_list) ) {
+    
+    remove_idx <- -which(stemDocument(tolower(word_list[i])) == stemDocument(tolower(word_list)))[-1]
+    
+    if( length(remove_idx) > 0 ) word_list <- word_list[remove_idx]
+    i <- i + 1
+  }
+    
+  word_list
+}
+
+
+doid <- read.csv("DOID.csv", stringsAsFactors = FALSE)
 
 # first 400 abstracts
 abstracts <- readabs("pubmed_result_crohns_search1.txt")
@@ -31,7 +57,7 @@ stopCluster(cl)
 
 disease_data <- pubmed_list %>%
   transpose %$%
-  Map(function(a,b) data.frame(cbind(id = a, disease = b)), PMID, Diseases) %>%
+  Map(function(a, b) data.frame(cbind(id = a, disease = remove_dups(b))), PMID, Diseases) %>%
   Filter(function(x) NROW(x) != 0, .) %>%
   Filter(function(x) NCOL(x) == 2, .) %>%
   do.call(rbind, .) %>%
@@ -39,18 +65,13 @@ disease_data <- pubmed_list %>%
          disease = gsub("diseases", "disease", disease)) %>%
   unique
 
-for( i in seq_along(disease_data$disease) ) {
-  disease_data$disease <- gsub(paste0(disease_data$disease[i], "s"),
-                               disease_data$disease[i], disease_data$disease)
-}
-disease_data$disease[nchar(disease_data$disease) < 5] <- "REMOVE"
-disease_data <- disease_data[disease_data$disease != "REMOVE", ]
-disease_data <- unique(disease_data)
+# keeping diseases over 3 letters long, (non-abbreviated)
+disease_data <- disease_data[nchar(disease_data$disease) > 3, ]
 
 
 genetic_data <- pubmed_list %>%
   transpose %$%
-  Map(function(a,b) data.frame(cbind(id = a, gene = b)), PMID, Genes) %>%
+  Map(function(a,b) data.frame(cbind(id = a, gene = remove_dups(b))), PMID, Genes) %>%
   Filter(function(x) NROW(x) != 0, .) %>%
   Filter(function(x) NCOL(x) == 2, .) %>%
   do.call(rbind, .) %>%
@@ -65,17 +86,18 @@ HGNCdata %<>%
          Previous.Names = as.character(Previous.Names),
          Synonyms = as.character(Synonyms))
 
+
 for( i in 1 : nrow(HGNCdata) ) {
-  
+
   name_list <- as.character(HGNCdata[i, c("Approved.Name", "Previous.Symbols", "Previous.Names", "Synonyms")])
   genetic_data$gene[tolower(genetic_data$gene) %in% tolower(name_list)] <- paste(HGNCdata[i, "Approved.Symbol"])
 
 }
 
 for( i in 1 : nrow(HGNCdata) ) {
-  
+
   genetic_data$gene[tolower(genetic_data$gene) %in% tolower(genetic_data$gene)[i]] <- genetic_data$gene[i]
-  
+
 }
 
 tnf_list <- c("TNF", "TNFa", "TNF-a", "Tumor necrosis factor (TNF)-alpha",
@@ -112,19 +134,13 @@ genetic_data <- unique(genetic_data)
 
 chemical_data <- pubmed_list %>%
   transpose %$%
-  Map(function(a,b) data.frame(cbind(id = a, chemicals = b)), PMID, Chemicals) %>%
+  Map(function(a,b) data.frame(cbind(id = a, chemicals = remove_dups(b))), PMID, Chemicals) %>%
   Filter(function(x) NROW(x) != 0, .) %>%
   Filter(function(x) NCOL(x) == 2, .) %>%
   do.call(rbind, .) %>%
   mutate(chemicals = tolower(chemicals)) %>%
   unique
 
-for( i in seq_along(chemical_data$chemicals) ) {
-  chemical_data$chemicals <- gsub(paste0(chemical_data$chemicals[i], "s"),
-                                     chemical_data$chemicals[i], chemical_data$chemicals)
-}
-
-chemical_data <- unique(chemical_data)
 
 
 # net <- graph_from_data_frame(genetic_data)
@@ -157,4 +173,56 @@ tmp <- disease_gene %>%
   rbind(. , {disease_chemical %>% select(from = disease, to = chemicals)}) %>%
   rbind(. , {chemical_gene %>% select(from = chemicals, to = gene)})
   
+
+
+nodes <- do.call(rbind,
+                 list(
+                   data.frame(
+                     label = unique(disease_data$disease)[unique(disease_data$disease) %in% unique(c(tmp$from, tmp$to))], 
+                     group = "Disease",
+                     stringsAsFactors = FALSE),
+                   data.frame(
+                     label = unique(genetic_data$gene)[unique(genetic_data$gene) %in% unique(c(tmp$from, tmp$to))], 
+                     group = "Gene",
+                     stringsAsFactors = FALSE),
+                   data.frame(
+                     label = unique(chemical_data$chemicals)[unique(chemical_data$chemicals) %in% unique(c(tmp$from, tmp$to))], 
+                     group = "Chemical",
+                     stringsAsFactors = TRUE) 
+                 )
+) %>%
+  mutate(id = 1 : n() - 1,
+         label = factor(label),
+         group = factor(group)) %>%
+  select(id, everything())
+
+# nodes <- do.call(rbind,
+#                  list(
+#                    data.frame(
+#                      label = unique(disease_data$disease), 
+#                      group = "Disease",
+#                      stringsAsFactors = FALSE),
+#                    data.frame(
+#                      label = unique(genetic_data$gene), 
+#                      group = "Gene",
+#                      stringsAsFactors = FALSE),
+#                    data.frame(
+#                      label = unique(chemical_data$chemicals), 
+#                      group = "Chemical",
+#                      stringsAsFactors = FALSE) 
+#                  )
+#                  ) %>%
+#   mutate(id = 1 : n() - 1) %>%
+#   select(id, everything())
+
+edges <- data.frame(
+               source = match(tmp$from, nodes$label) - 1,
+               target = match(tmp$to, nodes$label) - 1,
+               value = 5,
+               stringsAsFactors = FALSE
+               ) %>%
+  unique
   
+forceNetwork(Links = edges, Nodes = nodes,
+             Source = "source", Target = "target", Value = "value", 
+             NodeID = "id", Group = "group", opacity = 0.4, zoom = TRUE)
