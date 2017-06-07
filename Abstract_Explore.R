@@ -1,4 +1,5 @@
 library(pubmed.mineR)
+library(rentrez)
 library(magrittr)
 library(igraph)
 library(dplyr)

@@ -1,0 +1,101 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(tm)
+library(pubmed.mineR)
+rm(list=ls()); gc(reset = TRUE)
+source("C:/Users/Kirk/Documents/Biomedical Text Mining Resources/TextMining_Analysis_Function.R")
+
+
+
+# first 400 abstracts
+abstracts <- readabs("pubmed_result_crohns_search1.txt")
+corpus <- abstracts@Abstract
+
+corpus <- SimpleCorpus(VectorSource(corpus[1:200]))
+```
+
+
+```{r}
+
+# TM.Analysis(corpus = corpus)
+
+corpus <- tm_map(corpus, content_transformer(tolower))
+corpus <- tm_map(corpus, content_transformer(removePunctuation))
+corpus <- tm_map(corpus, content_transformer(removeNumbers))
+corpus <- tm_map(corpus, content_transformer(stripWhitespace))
+
+myStopwords <- c(stopwords("english"),"please","thanks","thank","pm", "mg","cc")
+corpus <- tm_map(corpus, removeWords, myStopwords)
+
+freq <- ceiling((0.05 * length(corpus)))
+tdm <- TermDocumentMatrix(corpus,control = list(wordLengths = c(2, Inf)))
+freq.terms <- findFreqTerms(tdm, lowfreq = freq)
+term.freq <- rowSums(as.matrix(tdm))
+term.freq <- subset(term.freq,term.freq >= freq)
+term.freq <- sort(term.freq, decreasing = TRUE)
+
+freq.df <- data.frame(term = names(term.freq), freq = term.freq)
+
+term.cor <- sapply(freq.terms, function(x){findAssocs(tdm, x, 0.3)})
+
+m <- as.matrix(tdm) 
+word.freq <- sort(rowSums(m),decreasing=T)
+
+m2 <- t(m)
+colnames(m2) <- rownames(tdm)
+clust <- floor(sqrt(length(corpus)/log(length(corpus))))
+kmeansResult <- kmeans(m2, clust)
+round(kmeansResult$centers, digits = 3)
+
+grp.list <- list()
+for( i in 1 : clust ) {
+clust.name <- paste("Cluster", i, sep = "")
+s <- sort(kmeansResult$centers[i,], decreasing = TRUE)
+grp.list[[i]] <- match(names(s)[1 : (10*freq)], colnames(m2))
+}
+
+file.txt <- paste(deparse(substitute(corpus)), "tm.analysis.txt", sep = ".")
+sink(file.txt)
+print(term.cor)
+for( i in 1 : clust ){
+  cat(paste("cluster ",i,": ",sep=""))
+  s<-sort(kmeansResult$centers[i,],decreasing=T)
+  cat(names(s)[1:6],"\n")
+}
+sink()
+
+file.pdf <- paste(deparse(substitute(corpus)), "tm.analysis.pdf", sep = ".")
+
+pdf(file.pdf,onefile = TRUE, paper = "letter")
+
+ggplot(freq.df, aes(x = term, y = freq)) + 
+  geom_bar(stat = "identity") + 
+  xlab("Terms") + 
+  ylab("Count") + 
+  coord_flip()
+
+wordcloud(words = names(word.freq), 
+          freq = word.freq, 
+          min.freq = freq, 
+          random.order = FALSE)
+
+qgraph(cor(m2), 
+       threshold = 0.3, 
+       cut = 0.65, 
+       layout = "spring", 
+       groups = grp.list, 
+       vsize = 3, 
+       labels = colnames(m2))
+
+dev.off()
+
+```
+
