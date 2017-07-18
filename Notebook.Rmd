@@ -3,23 +3,27 @@ title: "R Notebook"
 output: html_notebook
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+# Reading in previous downloaded abstracts from Pubmed.  
 
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+This section takes a txt document over previously downloaded abstracts and reads them into a corpus then performs a basic text mining pipline analsis on them.  The search term used was 'crohn's disease'  These were the first 200 articles that came up at the time.  
 
 ```{r}
 library(tm)
 library(pubmed.mineR)
+library(ggplot2)
+library(wordcloud)
+library(qgraph)
 rm(list=ls()); gc(reset = TRUE)
 source("C:/Users/Kirk/Documents/Biomedical Text Mining Resources/TextMining_Analysis_Function.R")
 
 
 
 # first 400 abstracts
-abstracts <- readabs("pubmed_result_crohns_search1.txt")
+# abstracts <- readabs("pubmed_result_crohns_search1.txt")
+abstracts <- readabs("pubmed_result_colorectalcancer.txt")
 corpus <- abstracts@Abstract
 
-corpus <- SimpleCorpus(VectorSource(corpus[1:200]))
+corpus <- SimpleCorpus(VectorSource(corpus))
 ```
 
 
@@ -37,6 +41,7 @@ corpus <- tm_map(corpus, removeWords, myStopwords)
 
 freq <- ceiling((0.05 * length(corpus)))
 tdm <- TermDocumentMatrix(corpus,control = list(wordLengths = c(2, Inf)))
+tdm <- removeSparseTerms(tdm, 0.9)
 freq.terms <- findFreqTerms(tdm, lowfreq = freq)
 term.freq <- rowSums(as.matrix(tdm))
 term.freq <- subset(term.freq,term.freq >= freq)
@@ -47,19 +52,19 @@ freq.df <- data.frame(term = names(term.freq), freq = term.freq)
 term.cor <- sapply(freq.terms, function(x){findAssocs(tdm, x, 0.3)})
 
 m <- as.matrix(tdm) 
-word.freq <- sort(rowSums(m),decreasing=T)
+word.freq <- sort(rowSums(m), decreasing = T)
 
 m2 <- t(m)
 colnames(m2) <- rownames(tdm)
-clust <- floor(sqrt(length(corpus)/log(length(corpus))))
+clust <- min(c(8, floor(sqrt(length(corpus)/log(length(corpus))))))
 kmeansResult <- kmeans(m2, clust)
 round(kmeansResult$centers, digits = 3)
 
 grp.list <- list()
 for( i in 1 : clust ) {
-clust.name <- paste("Cluster", i, sep = "")
-s <- sort(kmeansResult$centers[i,], decreasing = TRUE)
-grp.list[[i]] <- match(names(s)[1 : (10*freq)], colnames(m2))
+  clust.name <- paste("Cluster", i, sep = "")
+  s <- sort(kmeansResult$centers[i,], decreasing = TRUE)
+  grp.list[[i]] <- match(names(s)[1 : (10*freq)], colnames(m2))
 }
 
 file.txt <- paste(deparse(substitute(corpus)), "tm.analysis.txt", sep = ".")
@@ -97,5 +102,61 @@ qgraph(cor(m2),
 
 dev.off()
 
+```
+
+
+# Rentrez Tutorial
+
+https://cran.rstudio.com/web/packages/rentrez/vignettes/rentrez_tutorial.html
+
+```{r}
+# install.packages(rentrez)
+library(rentrez)
+rm(list = ls()); gc(reset = TRUE)
+
+entrez_dbs()
+
+# searching pubmed
+crohn_search <- entrez_search(db = "pubmed", term = "crohn", retmax = 40)
+crohn_search$ids
+
+
+search_year <- function(year, term){
+    query <- paste(term, "AND (", year, "[PDAT])")
+    entrez_search(db="pubmed", term=query, retmax=0)$count
+}
+
+year <- 2008:2016
+papers <- sapply(year, search_year, term="crohn", USE.NAMES=FALSE)
+
+plot(year, papers, type='b', main="Crohn Publication by Year")
+
+
+all_the_links <- entrez_link(dbfrom='pubmed', id=crohn_search$ids[2], db='all')
+all_the_links$links
+
+
+
+all_the_links <- entrez_link(dbfrom='gene', id=351, db='all')
+all_the_links$links
+all_the_links$links$gene_pmc[1:10]
+
+paper_links <- entrez_link(dbfrom="pubmed", id=25500142, cmd="llinks")
+paper_links
+
+paper_links$linkouts
+linkout_urls(paper_links)
+
+
+# passing in more than one link
+all_links_together  <- entrez_link(db="protein", 
+                                   dbfrom="gene", 
+                                   id=c("93100", "223646"))
+all_links_together
+
+# same as above but keeping the gene and protein ids together
+all_links_sep  <- entrez_link(db = "protein", dbfrom = "gene", id = c("93100", "223646"), by_id=TRUE)
+all_links_sep
+lapply(all_links_sep, function(x) x$links$gene_protein)
 ```
 

@@ -9,6 +9,9 @@ library(foreach)
 library(doParallel)
 library(stringdist)
 library(tm)
+library(ggplot2)
+library(wordcloud)
+rm(list = ls()); gc(reset = TRUE)
 
 ## helper functions ####
 
@@ -43,8 +46,9 @@ remove_dups <- function( word_list ){
 doid <- read.csv("DOID.csv", stringsAsFactors = FALSE)
 
 # first 400 abstracts
-abstracts <- readabs("pubmed_result_crohns_search1.txt")
-pmids <- abstracts@PMID
+# abstracts <- readabs("pubmed_result_crohns_search1.txt")
+abstracts <- readabs("pubmed_result_colorectalcancer.txt")
+pmids <- abstracts@PMID[1:500]
 
 
 cl <- makeCluster(4)
@@ -168,13 +172,34 @@ chemical_gene <- full_join(chemical_data, genetic_data) %>%
   select(-id) %>%
   na.omit
 
+### non - weighted ######
+# tmp <- disease_gene %>%
+#   select(from = disease, to = gene) %>%
+#   rbind(. , {disease_chemical %>% select(from = disease, to = chemicals)}) %>%
+#   rbind(. , {chemical_gene %>% select(from = chemicals, to = gene)})
 
-tmp <- disease_gene %>%
-  select(from = disease, to = gene) %>%
-  rbind(. , {disease_chemical %>% select(from = disease, to = chemicals)}) %>%
-  rbind(. , {chemical_gene %>% select(from = chemicals, to = gene)})
-  
 
+### weighted ############
+tmp <- disease_gene %>% 
+  group_by(disease, gene) %>% 
+  summarise(N = n()) %>% 
+  arrange(-N) %>%
+  select(from = disease, to = gene, weight = N) %>%
+  rbind(. , {disease_chemical %>% 
+      group_by(disease, chemicals) %>% 
+      summarise(N = n()) %>% 
+      arrange(-N) %>%
+      select(from = disease, to = chemicals, weight = N)
+    
+  }) %>%
+  rbind(. , {chemical_gene %>% 
+      group_by(chemicals, gene) %>% 
+      summarise(N = n()) %>% 
+      arrange(-N) %>%
+      select(from = chemicals, to = gene, weight = N)
+    
+  }) %>%
+  mutate( weight = 1/weight)
 
 nodes <- do.call(rbind,
                  list(
@@ -219,11 +244,13 @@ nodes <- do.call(rbind,
 edges <- data.frame(
                source = match(tmp$from, nodes$label) - 1,
                target = match(tmp$to, nodes$label) - 1,
-               value = 5,
+               value = tmp$weight,
                stringsAsFactors = FALSE
                ) %>%
   unique
   
 forceNetwork(Links = edges, Nodes = nodes,
              Source = "source", Target = "target", Value = "value", 
-             NodeID = "id", Group = "group", opacity = 0.4, zoom = TRUE)
+             NodeID = "label", Group = "group", 
+             linkDistance = JS("function(d){return d.value * 10}"),
+             opacity = 0.4, zoom = TRUE)
