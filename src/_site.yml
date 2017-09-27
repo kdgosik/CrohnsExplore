@@ -1,12 +1,19 @@
-name: "Reproducible Workflows"
+name: "Crohn's Disease Exploration"
 output_dir: "../docs"
 navbar:
-  title: "Reproducible Workflows"
+  title: "Crohn's Disease Exploration"
   left:
     - text: "Home"
       href: index.html
     - text: "Notebook"
       href: Notebook.html
-    - text: "Genetic Graph"
+    - text: "Chemical Disease Netowrk"
+      href: chemical_disease_network.html
+    - text: "Chemical Gene Netowrk"
+      href: chemical_gene_network.html
+    - text: "Gene Disease Netowrk"
+      href: gene_disease_network.html
+    - text: "Gene-Chemical-Disease Netowrk"
+      href: disease_gene_chemical_network.html
 
         

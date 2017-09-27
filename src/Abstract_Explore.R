@@ -8,9 +8,7 @@ library(networkD3)
 library(foreach)
 library(doParallel)
 library(stringdist)
-library(tm)
 library(ggplot2)
-library(wordcloud)
 rm(list = ls()); gc(reset = TRUE)
 
 ## helper functions ####
@@ -43,12 +41,12 @@ remove_dups <- function( word_list ){
 }
 
 
-doid <- read.csv("DOID.csv", stringsAsFactors = FALSE)
+doid <- read.csv("data/DOID.csv", stringsAsFactors = FALSE)
 
 # first 400 abstracts
 # abstracts <- readabs("pubmed_result_crohns_search1.txt")
-abstracts <- readabs("pubmed_result_colorectalcancer.txt")
-pmids <- abstracts@PMID[1:500]
+abstracts <- readabs("data/pubmed_result_colorectalcancer.txt")
+pmids <- abstracts@PMID[1:200]
 
 
 cl <- makeCluster(4)
@@ -62,7 +60,8 @@ stopCluster(cl)
 
 disease_data <- pubmed_list %>%
   transpose %$%
-  Map(function(a, b) data.frame(cbind(id = a, disease = remove_dups(b))), PMID, Diseases) %>%
+  #Map(function(a, b) data.frame(cbind(id = a, disease = remove_dups(b))), PMID, Diseases) %>%
+  Map(function(a, b) data.frame(cbind(id = a, disease = b)), PMID, Diseases) %>%
   Filter(function(x) NROW(x) != 0, .) %>%
   Filter(function(x) NCOL(x) == 2, .) %>%
   do.call(rbind, .) %>%
@@ -76,7 +75,8 @@ disease_data <- disease_data[nchar(disease_data$disease) > 3, ]
 
 genetic_data <- pubmed_list %>%
   transpose %$%
-  Map(function(a,b) data.frame(cbind(id = a, gene = remove_dups(b))), PMID, Genes) %>%
+  #Map(function(a,b) data.frame(cbind(id = a, gene = remove_dups(b))), PMID, Genes) %>%
+  Map(function(a, b) data.frame(cbind(id = a, gene = b)), PMID, Diseases) %>%
   Filter(function(x) NROW(x) != 0, .) %>%
   Filter(function(x) NCOL(x) == 2, .) %>%
   do.call(rbind, .) %>%
@@ -139,7 +139,8 @@ genetic_data <- unique(genetic_data)
 
 chemical_data <- pubmed_list %>%
   transpose %$%
-  Map(function(a,b) data.frame(cbind(id = a, chemicals = remove_dups(b))), PMID, Chemicals) %>%
+  #Map(function(a,b) data.frame(cbind(id = a, chemicals = remove_dups(b))), PMID, Chemicals) %>%
+  Map(function(a,b) data.frame(cbind(id = a, chemicals = b)), PMID, Chemicals) %>%
   Filter(function(x) NROW(x) != 0, .) %>%
   Filter(function(x) NCOL(x) == 2, .) %>%
   do.call(rbind, .) %>%
