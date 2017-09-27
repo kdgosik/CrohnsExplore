@@ -8,11 +8,5 @@ navbar:
     - text: "Notebook"
       href: Notebook.html
     - text: "Genetic Graph"
-      href: Genetic_Graph.html
-    - text: "Disease-Gene-Chemicl Graph"
-      href: disease_gene_chemical_network.html
-    - text: "Colorectal Cancer Network"
-      href: colorectal_cancer_network.html
-    - text: "Colorectal Cancer Weighted Network"
-      href: colorectal_cancer_weighted_network.html
+
         
