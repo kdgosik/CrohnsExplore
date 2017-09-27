@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+
+
+<title>R Notebook</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-1.1/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-1.1/highlight.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Reproducible Workflows</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="Notebook.html">Notebook</a>
+</li>
+<li>
+  <a href="Genetic_Graph.html">Genetic Graph</a>
+</li>
+<li>
+  <a href="disease_gene_chemical_network.html">Disease-Gene-Chemicl Graph</a>
+</li>
+<li>
+  <a href="colorectal_cancer_network.html">Colorectal Cancer Network</a>
+</li>
+<li>
+  <a href="colorectal_cancer_weighted_network.html">Colorectal Cancer Weighted Network</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">R Notebook</h1>
+
+</div>
+
+
+<div id="reading-in-previous-downloaded-abstracts-from-pubmed." class="section level1">
+<h1>Reading in previous downloaded abstracts from Pubmed.</h1>
+<p>This section takes a txt document over previously downloaded abstracts and reads them into a corpus then performs a basic text mining pipline analsis on them. The search term used was ‘crohn’s disease’ These were the first 200 articles that came up at the time.</p>
+<pre class="r"><code>library(tm)
+library(pubmed.mineR)
+library(ggplot2)
+library(wordcloud)
+library(qgraph)
+rm(list=ls()); gc(reset = TRUE)
+source(&quot;C:/Users/Kirk/Documents/Biomedical Text Mining Resources/TextMining_Analysis_Function.R&quot;)
+
+
+
+# first 400 abstracts
+# abstracts &lt;- readabs(&quot;pubmed_result_crohns_search1.txt&quot;)
+abstracts &lt;- readabs(&quot;pubmed_result_colorectalcancer.txt&quot;)
+corpus &lt;- abstracts@Abstract
+
+corpus &lt;- SimpleCorpus(VectorSource(corpus))</code></pre>
+<pre class="r"><code># TM.Analysis(corpus = corpus)
+
+corpus &lt;- tm_map(corpus, content_transformer(tolower))
+corpus &lt;- tm_map(corpus, content_transformer(removePunctuation))
+corpus &lt;- tm_map(corpus, content_transformer(removeNumbers))
+corpus &lt;- tm_map(corpus, content_transformer(stripWhitespace))
+
+myStopwords &lt;- c(stopwords(&quot;english&quot;),&quot;please&quot;,&quot;thanks&quot;,&quot;thank&quot;,&quot;pm&quot;, &quot;mg&quot;,&quot;cc&quot;)
+corpus &lt;- tm_map(corpus, removeWords, myStopwords)
+
+freq &lt;- ceiling((0.05 * length(corpus)))
+tdm &lt;- TermDocumentMatrix(corpus,control = list(wordLengths = c(2, Inf)))
+tdm &lt;- removeSparseTerms(tdm, 0.9)
+freq.terms &lt;- findFreqTerms(tdm, lowfreq = freq)
+term.freq &lt;- rowSums(as.matrix(tdm))
+term.freq &lt;- subset(term.freq,term.freq &gt;= freq)
+term.freq &lt;- sort(term.freq, decreasing = TRUE)
+
+freq.df &lt;- data.frame(term = names(term.freq), freq = term.freq)
+
+term.cor &lt;- sapply(freq.terms, function(x){findAssocs(tdm, x, 0.3)})
+
+m &lt;- as.matrix(tdm) 
+word.freq &lt;- sort(rowSums(m), decreasing = T)
+
+m2 &lt;- t(m)
+colnames(m2) &lt;- rownames(tdm)
+clust &lt;- min(c(8, floor(sqrt(length(corpus)/log(length(corpus))))))
+kmeansResult &lt;- kmeans(m2, clust)
+round(kmeansResult$centers, digits = 3)
+
+grp.list &lt;- list()
+for( i in 1 : clust ) {
+  clust.name &lt;- paste(&quot;Cluster&quot;, i, sep = &quot;&quot;)
+  s &lt;- sort(kmeansResult$centers[i,], decreasing = TRUE)
+  grp.list[[i]] &lt;- match(names(s)[1 : (10*freq)], colnames(m2))
+}
+
+file.txt &lt;- paste(deparse(substitute(corpus)), &quot;tm.analysis.txt&quot;, sep = &quot;.&quot;)
+sink(file.txt)
+print(term.cor)
+for( i in 1 : clust ){
+  cat(paste(&quot;cluster &quot;,i,&quot;: &quot;,sep=&quot;&quot;))
+  s&lt;-sort(kmeansResult$centers[i,],decreasing=T)
+  cat(names(s)[1:6],&quot;\n&quot;)
+}
+sink()
+
+file.pdf &lt;- paste(deparse(substitute(corpus)), &quot;tm.analysis.pdf&quot;, sep = &quot;.&quot;)
+
+pdf(file.pdf,onefile = TRUE, paper = &quot;letter&quot;)
+
+ggplot(freq.df, aes(x = term, y = freq)) + 
+  geom_bar(stat = &quot;identity&quot;) + 
+  xlab(&quot;Terms&quot;) + 
+  ylab(&quot;Count&quot;) + 
+  coord_flip()
+
+wordcloud(words = names(word.freq), 
+          freq = word.freq, 
+          min.freq = freq, 
+          random.order = FALSE)
+
+qgraph(cor(m2), 
+       threshold = 0.3, 
+       cut = 0.65, 
+       layout = &quot;spring&quot;, 
+       groups = grp.list, 
+       vsize = 3, 
+       labels = colnames(m2))
+
+dev.off()</code></pre>
+</div>
+<div id="rentrez-tutorial" class="section level1">
+<h1>Rentrez Tutorial</h1>
+<p><a href="https://cran.rstudio.com/web/packages/rentrez/vignettes/rentrez_tutorial.html" class="uri">https://cran.rstudio.com/web/packages/rentrez/vignettes/rentrez_tutorial.html</a></p>
+<pre class="r"><code># install.packages(rentrez)
+library(rentrez)
+rm(list = ls()); gc(reset = TRUE)</code></pre>
+<pre><code>##           used (Mb) gc trigger (Mb) max used (Mb)
+## Ncells  844826 45.2    1442291 77.1   844826 45.2
+## Vcells 1337966 10.3    3030219 23.2  1337966 10.3</code></pre>
+<pre class="r"><code>entrez_dbs()</code></pre>
+<pre><code>##  [1] &quot;pubmed&quot;          &quot;protein&quot;         &quot;nuccore&quot;        
+##  [4] &quot;ipg&quot;             &quot;nucleotide&quot;      &quot;nucgss&quot;         
+##  [7] &quot;nucest&quot;          &quot;structure&quot;       &quot;sparcle&quot;        
+## [10] &quot;genome&quot;          &quot;annotinfo&quot;       &quot;assembly&quot;       
+## [13] &quot;bioproject&quot;      &quot;biosample&quot;       &quot;blastdbinfo&quot;    
+## [16] &quot;books&quot;           &quot;cdd&quot;             &quot;clinvar&quot;        
+## [19] &quot;clone&quot;           &quot;gap&quot;             &quot;gapplus&quot;        
+## [22] &quot;grasp&quot;           &quot;dbvar&quot;           &quot;gene&quot;           
+## [25] &quot;gds&quot;             &quot;geoprofiles&quot;     &quot;homologene&quot;     
+## [28] &quot;medgen&quot;          &quot;mesh&quot;            &quot;ncbisearch&quot;     
+## [31] &quot;nlmcatalog&quot;      &quot;omim&quot;            &quot;orgtrack&quot;       
+## [34] &quot;pmc&quot;             &quot;popset&quot;          &quot;probe&quot;          
+## [37] &quot;proteinclusters&quot; &quot;pcassay&quot;         &quot;biosystems&quot;     
+## [40] &quot;pccompound&quot;      &quot;pcsubstance&quot;     &quot;pubmedhealth&quot;   
+## [43] &quot;seqannot&quot;        &quot;snp&quot;             &quot;sra&quot;            
+## [46] &quot;taxonomy&quot;        &quot;biocollections&quot;  &quot;unigene&quot;        
+## [49] &quot;gencoll&quot;         &quot;gtr&quot;</code></pre>
+<pre class="r"><code># searching pubmed
+crohn_search &lt;- entrez_search(db = &quot;pubmed&quot;, term = &quot;crohn&quot;, retmax = 40)
+crohn_search$ids</code></pre>
+<pre><code>##  [1] &quot;28945207&quot; &quot;28945206&quot; &quot;28944071&quot; &quot;28937552&quot; &quot;28929387&quot; &quot;28922207&quot;
+##  [7] &quot;28914206&quot; &quot;28913968&quot; &quot;28902728&quot; &quot;28901585&quot; &quot;28900730&quot; &quot;28891095&quot;
+## [13] &quot;28889960&quot; &quot;28888700&quot; &quot;28882937&quot; &quot;28882418&quot; &quot;28880453&quot; &quot;28877189&quot;
+## [19] &quot;28874419&quot; &quot;28873511&quot; &quot;28873259&quot; &quot;28870035&quot; &quot;28869658&quot; &quot;28869010&quot;
+## [25] &quot;28864649&quot; &quot;28864042&quot; &quot;28858439&quot; &quot;28857255&quot; &quot;28853805&quot; &quot;28851611&quot;
+## [31] &quot;28851283&quot; &quot;28848798&quot; &quot;28848781&quot; &quot;28846760&quot; &quot;28843920&quot; &quot;28839910&quot;
+## [37] &quot;28839909&quot; &quot;28839907&quot; &quot;28839887&quot; &quot;28839872&quot;</code></pre>
+<pre class="r"><code>search_year &lt;- function(year, term){
+    query &lt;- paste(term, &quot;AND (&quot;, year, &quot;[PDAT])&quot;)
+    entrez_search(db=&quot;pubmed&quot;, term=query, retmax=0)$count
+}
+
+year &lt;- 2008:2016
+papers &lt;- sapply(year, search_year, term=&quot;crohn&quot;, USE.NAMES=FALSE)
+
+plot(year, papers, type=&#39;b&#39;, main=&quot;Crohn Publication by Year&quot;)</code></pre>
+<p><img src="Notebook_files/figure-html/RentrezTutorial-1.png" width="672" /></p>
+<pre class="r"><code>all_the_links &lt;- entrez_link(dbfrom=&#39;pubmed&#39;, id=crohn_search$ids[2], db=&#39;all&#39;)
+all_the_links$links</code></pre>
+<pre><code>## elink result with information from 5 databases:
+## [1] pubmed_pubmed              pubmed_pubmed_combined    
+## [3] pubmed_pubmed_five         pubmed_pubmed_reviews     
+## [5] pubmed_pubmed_reviews_five</code></pre>
+<pre class="r"><code>all_the_links &lt;- entrez_link(dbfrom=&#39;gene&#39;, id=351, db=&#39;all&#39;)
+all_the_links$links</code></pre>
+<pre><code>## elink result with information from 54 databases:
+##  [1] gene_bioconcepts               gene_biosystems               
+##  [3] gene_biosystems_all            gene_clinvar                  
+##  [5] gene_clinvar_specific          gene_dbvar                    
+##  [7] gene_genome                    gene_gtr                      
+##  [9] gene_homologene                gene_medgen_diseases          
+## [11] gene_pcassay_alltarget_list    gene_pcassay_alltarget_summary
+## [13] gene_pcassay_rnai              gene_pcassay_target           
+## [15] gene_probe                     gene_structure                
+## [17] gene_bioproject                gene_books                    
+## [19] gene_cdd                       gene_gene_h3k4me3             
+## [21] gene_gene_neighbors            gene_genereviews              
+## [23] gene_genome2                   gene_geoprofiles              
+## [25] gene_nuccore                   gene_nuccore_mgc              
+## [27] gene_nuccore_pos               gene_nuccore_refseqgene       
+## [29] gene_nuccore_refseqrna         gene_nucest                   
+## [31] gene_nucest_clust              gene_nucleotide               
+## [33] gene_nucleotide_clust          gene_nucleotide_mgc           
+## [35] gene_nucleotide_mgc_url        gene_nucleotide_pos           
+## [37] gene_omim                      gene_pcassay_proteintarget    
+## [39] gene_pccompound                gene_pcsubstance              
+## [41] gene_pmc                       gene_pmc_nucleotide           
+## [43] gene_protein                   gene_protein_refseq           
+## [45] gene_pubmed                    gene_pubmed_citedinomim       
+## [47] gene_pubmed_pmc_nucleotide     gene_pubmed_rif               
+## [49] gene_snp                       gene_snp_geneview             
+## [51] gene_sparcle                   gene_taxonomy                 
+## [53] gene_unigene                   gene_varview</code></pre>
+<pre class="r"><code>all_the_links$links$gene_pmc[1:10]</code></pre>
+<pre><code>##  [1] &quot;5561919&quot; &quot;5560349&quot; &quot;5559291&quot; &quot;5548265&quot; &quot;5540602&quot; &quot;5434815&quot; &quot;5395029&quot;
+##  [8] &quot;5360245&quot; &quot;5233555&quot; &quot;5104494&quot;</code></pre>
+<pre class="r"><code>paper_links &lt;- entrez_link(dbfrom=&quot;pubmed&quot;, id=25500142, cmd=&quot;llinks&quot;)
+paper_links</code></pre>
+<pre><code>## elink object with contents:
+##  $linkouts: links to external websites</code></pre>
+<pre class="r"><code>paper_links$linkouts</code></pre>
+<pre><code>## $ID_25500142
+## $ID_25500142[[1]]
+## Linkout from Elsevier Science 
+##  $Url: https://linkinghub.elsevie ...
+## 
+## $ID_25500142[[2]]
+## Linkout from Europe PubMed Central 
+##  $Url: http://europepmc.org/abstr ...
+## 
+## $ID_25500142[[3]]
+## Linkout from Ovid Technologies, Inc. 
+##  $Url: http://ovidsp.ovid.com/ovi ...
+## 
+## $ID_25500142[[4]]
+## Linkout from PubMed Central 
+##  $Url: https://www.ncbi.nlm.nih.g ...
+## 
+## $ID_25500142[[5]]
+## Linkout from PubMed Central Canada 
+##  $Url: http://pubmedcentralcanada ...
+## 
+## $ID_25500142[[6]]
+## Linkout from MedlinePlus Health Information 
+##  $Url: https://medlineplus.gov/al ...
+## 
+## $ID_25500142[[7]]
+## Linkout from Mouse Genome Informatics (MGI) 
+##  $Url: http://www.informatics.jax ...</code></pre>
+<pre class="r"><code>linkout_urls(paper_links)</code></pre>
+<pre><code>## $ID_25500142
+## [1] &quot;https://linkinghub.elsevier.com/retrieve/pii/S0014-4886(14)00393-8&quot;     
+## [2] &quot;http://europepmc.org/abstract/MED/25500142&quot;                             
+## [3] &quot;http://ovidsp.ovid.com/ovidweb.cgi?T=JS&amp;PAGE=linkout&amp;SEARCH=25500142.ui&quot;
+## [4] &quot;https://www.ncbi.nlm.nih.gov/pmc/articles/pmid/25500142/&quot;               
+## [5] &quot;http://pubmedcentralcanada.ca/pmcc/articles/pmid/25500142&quot;              
+## [6] &quot;https://medlineplus.gov/alzheimersdisease.html&quot;                         
+## [7] &quot;http://www.informatics.jax.org/reference/25500142&quot;</code></pre>
+<pre class="r"><code># passing in more than one link
+all_links_together  &lt;- entrez_link(db=&quot;protein&quot;, 
+                                   dbfrom=&quot;gene&quot;, 
+                                   id=c(&quot;93100&quot;, &quot;223646&quot;))
+all_links_together</code></pre>
+<pre><code>## elink object with contents:
+##  $links: IDs for linked records from NCBI
+## </code></pre>
+<pre class="r"><code># same as above but keeping the gene and protein ids together
+all_links_sep  &lt;- entrez_link(db = &quot;protein&quot;, dbfrom = &quot;gene&quot;, id = c(&quot;93100&quot;, &quot;223646&quot;), by_id=TRUE)
+all_links_sep</code></pre>
+<pre><code>## List of 2 elink objects,each containing
+##   $links: IDs for linked records from NCBI
+## </code></pre>
+<pre class="r"><code>lapply(all_links_sep, function(x) x$links$gene_protein)</code></pre>
+<pre><code>## [[1]]
+##  [1] &quot;1034662002&quot; &quot;1034662000&quot; &quot;1034661998&quot; &quot;1034661996&quot; &quot;1034661994&quot;
+##  [6] &quot;1034661992&quot; &quot;558472750&quot;  &quot;545685826&quot;  &quot;194394158&quot;  &quot;166221824&quot; 
+## [11] &quot;154936864&quot;  &quot;122346659&quot;  &quot;119602646&quot;  &quot;119602645&quot;  &quot;119602644&quot; 
+## [16] &quot;119602643&quot;  &quot;119602642&quot;  &quot;37787309&quot;   &quot;37787307&quot;   &quot;37787305&quot;  
+## [21] &quot;33991172&quot;   &quot;21619615&quot;   &quot;10834676&quot;  
+## 
+## [[2]]
+##  [1] &quot;148697547&quot; &quot;148697546&quot; &quot;81899807&quot;  &quot;74215266&quot;  &quot;74186774&quot; 
+##  [6] &quot;37787317&quot;  &quot;37589273&quot;  &quot;31982089&quot;  &quot;26339824&quot;  &quot;26329351&quot;</code></pre>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

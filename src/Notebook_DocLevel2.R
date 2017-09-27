@@ -1,0 +1,19 @@
+#' ---
+#' title: "Notebook"
+#' output:
+#'  html_document:
+#'    toc: true
+#'    toc_float: true
+#'    css: custom.css
+#'    includes:
+#'      in_header: html/github_button.html
+#' ---
+#' 
+#' ## Comments
+#' I need to add markdown comments here
+#' 
+#' 
+## ----NotebookSetup, include=FALSE----------------------------------------
+knitr::opts_chunk$set(echo = TRUE)
+
+#' 

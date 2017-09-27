@@ -1,13 +1,13 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output: html_document
 ---
 
 # Reading in previous downloaded abstracts from Pubmed.  
 
 This section takes a txt document over previously downloaded abstracts and reads them into a corpus then performs a basic text mining pipline analsis on them.  The search term used was 'crohn's disease'  These were the first 200 articles that came up at the time.  
 
-```{r}
+```{r LoadPackages, eval = F}
 library(tm)
 library(pubmed.mineR)
 library(ggplot2)
@@ -27,7 +27,7 @@ corpus <- SimpleCorpus(VectorSource(corpus))
 ```
 
 
-```{r}
+```{r tmMap, eval = FALSE}
 
 # TM.Analysis(corpus = corpus)
 
@@ -109,7 +109,7 @@ dev.off()
 
 https://cran.rstudio.com/web/packages/rentrez/vignettes/rentrez_tutorial.html
 
-```{r}
+```{r RentrezTutorial}
 # install.packages(rentrez)
 library(rentrez)
 rm(list = ls()); gc(reset = TRUE)
