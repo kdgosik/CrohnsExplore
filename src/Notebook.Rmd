@@ -7,7 +7,7 @@ output: html_document
 
 This section takes a txt document over previously downloaded abstracts and reads them into a corpus then performs a basic text mining pipline analsis on them.  The search term used was 'crohn's disease'  These were the first 200 articles that came up at the time.  
 
-```{r LoadPackages, eval = F}
+```{r LoadPackages, eval = FALSE}
 library(tm)
 library(pubmed.mineR)
 library(ggplot2)

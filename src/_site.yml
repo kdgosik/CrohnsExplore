@@ -7,13 +7,13 @@ navbar:
       href: index.html
     - text: "Notebook"
       href: Notebook.html
-    - text: "html/Chemical Disease Netowrk"
-      href: chemical_disease_network.html
-    - text: "html/Chemical Gene Netowrk"
-      href: chemical_gene_network.html
-    - text: "html/Gene Disease Netowrk"
-      href: gene_disease_network.html
-    - text: "html/Gene-Chemical-Disease Netowrk"
-      href: disease_gene_chemical_network.html
+    - text: "Chemical Disease Netowrk"
+      href: html/chemical_disease_network.html
+    - text: "Chemical Gene Netowrk"
+      href: html/chemical_gene_network.html
+    - text: "Gene Disease Netowrk"
+      href: html/gene_disease_network.html
+    - text: "Gene-Chemical-Disease Netowrk"
+      href: html/disease_gene_chemical_network.html
 
         
